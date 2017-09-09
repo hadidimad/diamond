@@ -61,7 +61,7 @@ class Robot:
         self.maze = maze
         self.image = None
         self.red_zone = red_zone
-        self.goal = None  # type Thing
+        self.target = None  # type Thing
 
     def draw(self, image):
         if self.finded == True:
@@ -101,17 +101,44 @@ class Robot:
     def move(self, dir):
         print "move in", dir
 
-    def keep_to_cent(self):
-        w, h = self.image.shape[:2]
-        mx = self.hx * (w / self.MAZE_MAX_X) + ((w / self.MAZE_MAX_X) / 2)
-        my = self.hy * (h / self.MAZE_MAX_Y) + ((h / self.MAZE_MAX_Y) / 2)
-        if distance((mx, my), (self.hx, self.hy)) < 5:
-            return True
+    def move_to_point(self,point):
+        (x,y)=point[0],point[1]
+        if self.convert_maze_x(x) == self.hx and self.convert_maze_y(y) == y:
+
+            if distance((self.hx, self.hy), (x, y)) < 5:
+                return True
+            else:
+                self.move(angle((self.hx, self.hy), (x,y)))
+                return False
         else:
-            self.move(angle((self.hx, self.hy), (mx, my)))
+            w, h = self.image.shape[:2]
+            mx = self.convert_maze_x(self.hx)
+            my = self.convert_maze_y(self.hy)
+            mx = mx * (w/ self.MAZE_MAX_X) + (w/self.MAZE_MAX_X)/2
+            my = my * (h/self.MAZE_MAX_Y) + (h/self.MAZE_MAX_Y)/2
+            if distance((self.hx,self.hy),(mx,my)) > 5 :
+                self.move(angle((self.hx, self.hy), (mx, my)))
+            else:
+                path=find_path_astar(self.maze,(self.convert_maze_x(self.hx),self.convert_maze_y(self.hy)),(self.convert_maze_x(x),self.convert_maze_y(y)))
+                nx = self.hx
+                ny = self.hy
+                if path[0] == "N":
+                    nx = self.hx
+                    ny = self.hy - (h /self.MAZE_MAX_Y)
+                elif path[0] == "E":
+                    nx = self.hx + (w / self.MAZE_MAX_X)
+                    ny = self.hy
+                elif path[0] == "S":
+                    nx = self.hx
+                    ny = self.hy + (h / self.MAZE_MAX_Y)
+                elif path[0] == "W":
+                    nx = self.hx - (w / self.MAZE_MAX_X)
+                    ny = self.hy
+                self.move(angle((self.hx,self.hy),(nx,ny)))
             return False
-    def find_move_point(self,image):
-        a = math.degrees(math.atan2((self.red_zone.y-self.goal.cy),(self.red_zone.x - self.goal.cx)))
+
+    def find_move_point(self, image):
+        a = math.degrees(math.atan2((self.red_zone.y - self.target.cy), (self.red_zone.x - self.target.cx)))
         if a < 0:
             a = abs(a)
             a = 180 - a
@@ -121,23 +148,24 @@ class Robot:
         cv2.putText(image, str(int(a)), (self.red_zone.x, self.red_zone.y), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
                     (0, 0, 0), 1, cv2.LINE_AA)
         a = math.radians(a)
-        mx = int(self.goal.cx - (math.cos(a) * 50))
-        my = int(self.goal.cy + (math.sin(a) * 50))
-        return mx,my
+        mx = int(self.target.cx - (math.cos(a) * 50))
+        my = int(self.target.cy + (math.sin(a) * 50))
+        return mx, my
 
-    def choose_goal(self, things):
+    def choose_target(self, things):
+        if len(things) == 0:
+            return False
         a = copy.deepcopy(things)
 
         def compare(a, b):
             # return distance((self.hx,self.hy),(a.cx,a.cy))+distance((a.cx,a.cy),(self.red_zone.x,self.red_zone.y))
             # ""sum of robot distance to goal and object distance to red zone""
-            dista=int(distance((a.cx, a.cy), (self.red_zone.x, self.red_zone.y)) - distance((b.cx, b.cy), (self.red_zone.x, self.red_zone.y)))
+            dista = int(distance((a.cx, a.cy), (self.red_zone.x, self.red_zone.y)) - distance((b.cx, b.cy), (
+            self.red_zone.x, self.red_zone.y)))
             return dista
 
         a.sort(cmp=compare)
-        if len(a) == 0:
-            return False
-        self.goal = a[0]
+        self.target = a[0]
         return True
 
     def update_image(self, image):
@@ -150,6 +178,11 @@ class Robot:
     def convert_maze_y(self, y):
         w, h = self.image.shape[:2]
         return int(math.floor(y / (h / self.MAZE_MAX_Y)))
+
+    def set_goal(self, point):
+        (x, y) = point[0], point[1]
+        self.nx = x
+        self.ny = y
 
     def update_maze(self, things):
         for i in xrange(len(self.maze)):
@@ -200,7 +233,7 @@ class RedZone:
             if len(self.points) == 2:
                 self.finished = True
 
-    def config(self, camera,ground):
+    def config(self, camera, ground):
         cv2.namedWindow("choose red zone", cv2.WINDOW_NORMAL)
         print "please crop your red zone in image"
         cv2.setMouseCallback("choose red zone", self.mouse_callback)

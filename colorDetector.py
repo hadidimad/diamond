@@ -41,15 +41,7 @@ class ColorDetector:
                             currentHierarchy = component[1]
                             x, y, w, h = cv2.boundingRect(currentContour)
                             if currentHierarchy[3] < 0 and w * h > 300:
-                                # these are the outermost parent components
                                 cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 1)
-
-                                #                for cnt in contours:
-                                #                    (x, y, w, h) = cv2.boundingRect(cnt)
-                                #                    if w * h > 200:
-                                #                        cv2.rectangle(
-                                #                           image, (x, y), (x + w, y + h), (100, 0, 100))
-
                 cv2.imshow("calibrate color", image)
                 cv2.imshow("hsv", hsv)
                 key = cv2.waitKey(1) & 0xFF

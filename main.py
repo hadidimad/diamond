@@ -17,7 +17,7 @@ ground.config(camera)
 red_zone = RedZone()
 red_zone.config(camera,ground)
 
-robot = Robot("blue","green",red_zone)
+robot = Robot("yellow","blue",red_zone)
 cv2.namedWindow("camera",cv2.WINDOW_NORMAL)
 
 while True:
@@ -36,11 +36,11 @@ while True:
     #    print i
     #print "----------------------------------"
     robot.draw_grid(out)
-    robot.choose_goal(things)
-    cv2.line(out,(robot.hx,robot.hy),(robot.goal.cx,robot.goal.cy),(0,0,255),1)
+    robot.choose_target(things)
+    cv2.line(out, (robot.hx,robot.hy), (robot.target.cx, robot.target.cy), (0, 0, 255), 1)
     mx,my=robot.find_move_point(out)
     cv2.line(out, (robot.hx, robot.hy), (mx, my), (255, 0, 255), 1)
-    cv2.line(out, (robot.red_zone.x, robot.red_zone.y), (robot.goal.cx, robot.goal.cy), (0, 0, 255), 1)
+    cv2.line(out, (robot.red_zone.x, robot.red_zone.y), (robot.target.cx, robot.target.cy), (0, 0, 255), 1)
     cv2.imshow("camera", out)
     key = cv2.waitKey(1)
     if key == 27:
