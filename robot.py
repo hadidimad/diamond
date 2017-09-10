@@ -8,15 +8,15 @@ def heuristic(cell, goal):
     return abs(cell[0] - goal[0]) + abs(cell[1] - goal[1])
 
 
-def maze2graph(self):
-    height = len(self.maze)
-    width = len(self.maze[0]) if height else 0
-    graph = {(i, j): [] for j in range(width) for i in range(height) if not self.maze[i][j]}
+def maze2graph(maze):
+    height = len(maze)
+    width = len(maze[0]) if height else 0
+    graph = {(i, j): [] for j in range(width) for i in range(height) if not maze[i][j]}
     for row, col in graph.keys():
-        if row < height - 1 and not self.maze[row + 1][col]:
+        if row < height - 1 and not maze[row + 1][col]:
             graph[(row, col)].append(("S", (row + 1, col)))
             graph[(row + 1, col)].append(("N", (row, col)))
-        if col < width - 1 and not self.maze[row][col + 1]:
+        if col < width - 1 and not maze[row][col + 1]:
             graph[(row, col)].append(("E", (row, col + 1)))
             graph[(row, col + 1)].append(("W", (row, col)))
     return graph
@@ -103,7 +103,7 @@ class Robot:
 
     def move_to_point(self,point):
         (x,y)=point[0],point[1]
-        if self.convert_maze_x(x) == self.hx and self.convert_maze_y(y) == y:
+        if self.convert_maze_x(x) == self.convert_maze_x(self.hx) and self.convert_maze_y(y) == self.convert_maze_y(self.hy):
 
             if distance((self.hx, self.hy), (x, y)) < 5:
                 return True
@@ -187,12 +187,12 @@ class Robot:
     def update_maze(self, things):
         for i in xrange(len(self.maze)):
             for j in xrange(len(self.maze[i])):
-                self.maze[i][j] = 0
+                self.maze[i][j] = False
         for thing in things:
             ix = self.convert_maze_x(thing.cx)
             iy = self.convert_maze_y(thing.cy)
             if ix < self.MAZE_MAX_X and iy < self.MAZE_MAX_Y:
-                self.maze[iy][ix] = 1
+                self.maze[iy][ix] = True
 
     def draw_grid(self, image):
         w, h = image.shape[:2]

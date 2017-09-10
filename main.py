@@ -39,6 +39,8 @@ while True:
     robot.choose_target(things)
     cv2.line(out, (robot.hx,robot.hy), (robot.target.cx, robot.target.cy), (0, 0, 255), 1)
     mx,my=robot.find_move_point(out)
+    robot.move_to_point((mx,my))
+    print "robot" ,robot.get_angle()
     cv2.line(out, (robot.hx, robot.hy), (mx, my), (255, 0, 255), 1)
     cv2.line(out, (robot.red_zone.x, robot.red_zone.y), (robot.target.cx, robot.target.cy), (0, 0, 255), 1)
     cv2.imshow("camera", out)
