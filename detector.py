@@ -55,9 +55,9 @@ class Crop:
         if self.image is not None:
             self.cursor = (x, y)
             if e == cv2.EVENT_LBUTTONDOWN:
-                self.point1 = (x, y)
+                self.point1 = (y, x)
             if e == cv2.EVENT_LBUTTONUP:
-                self.point2 = (x, y)
+                self.point2 = (y, x)
                 self.finished = True
 
     def config(self, camera):
@@ -68,7 +68,7 @@ class Crop:
             _, image = camera.read()
             self.update(image)
             if self.point1:
-                cv2.rectangle(image, self.point1, self.cursor, (100, 200, 100))
+                cv2.rectangle(image, self.point1[::-1], self.cursor, (100, 200, 100))
             cv2.imshow("crop it", image)
             cv2.waitKey(1)
         cv2.destroyWindow("crop it")
