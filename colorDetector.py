@@ -11,10 +11,15 @@ class ColorDetector:
         self.file = filename
 
     def load_colors(self):
-        file = open(self.file, "r")
-        string = file.read()
-        self.colors = json.loads(string)
-        print "colors loaded! [OK]"
+        try:
+            with open(self.file, "r+") as f:
+                string = f.read()
+                self.colors = json.loads(string)
+                print "colors loaded! [OK]"
+        except IOError:
+            d = json.dumps(self.colors)
+            with open(self.file, "w+") as f:
+                f.write(d)
 
     def calibrate(self, camera):
         cv2.namedWindow("calibrate color", cv2.WINDOW_NORMAL)
