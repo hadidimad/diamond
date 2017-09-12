@@ -2,6 +2,7 @@ import cv2
 from colorDetector import ColorDetector
 from robot import *
 from detector import Crop
+from connection import Connection
 import argparse
 
 ap = argparse.ArgumentParser()
@@ -23,6 +24,8 @@ red_zone = RedZone()
 red_zone.config(camera, ground)
 
 robot = Robot("yellow", "blue", red_zone)
+robot.connection = Connection("20:16:05:30:49:79")
+robot.connection.connect()
 cv2.namedWindow("camera", cv2.WINDOW_NORMAL)
 
 while True:
@@ -41,10 +44,16 @@ while True:
     #    print i
     # print "----------------------------------"
     robot.draw_grid(out)
+    print "thigns " ,len(things)
     robot.choose_target(things)
-    cv2.line(out, (robot.hx, robot.hy), (robot.target.cx, robot.target.cy), (0, 0, 255), 1)
+    cv2.line(out, (robot.hx, robot.hy), (robot.target.cx, robot.target.cy), (0, 255, 255), 1)
     mx, my = robot.find_move_point(out)
-    robot.move_to_point((mx, my))
+    #robot.move_to_point((mx, my))
+    if distance((mx,my),(robot.hx,robot.hy)) >10:
+        robot.move(angle((mx,my),(robot.hx,robot.hy)))
+    else:
+        robot.connection.send_move_angle(0,0)
+
     print "robot", robot.get_angle()
     cv2.line(out, (robot.hx, robot.hy), (mx, my), (255, 0, 255), 1)
     cv2.line(out, (robot.red_zone.x, robot.red_zone.y), (robot.target.cx, robot.target.cy), (0, 0, 255), 1)

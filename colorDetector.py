@@ -67,8 +67,8 @@ class ColorDetector:
 
     def find_things(self, image):
         things = []
+        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         for col in self.colors:
-            hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
             bw = cv2.inRange(hsv, tuple(
                 self.colors[col][0]), tuple(self.colors[col][1]))
             _, contours, hierarchy = cv2.findContours(
@@ -82,8 +82,8 @@ class ColorDetector:
                     if currentHierarchy[3] < 0 and w * h > 200:
                         image = cv2.rectangle(
                             image, (x, y), (x + w, y + h), (100, 200, 100))
-                        #image = cv2.putText(image, col, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
-                        #                    (100, 200, 100), 3, cv2.LINE_AA)
+                        image = cv2.putText(image, col, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                                            (100, 200, 100), 3, cv2.LINE_AA)
                         temp = Thing(x, y, w, h, col)
                         things.append(temp)
         return things
