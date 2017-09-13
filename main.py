@@ -25,6 +25,7 @@ red_zone.config(camera, ground)
 
 robot = Robot("yellow", "blue", red_zone)
 robot.connection = Connection("20:16:05:30:49:79")
+robot.connection.on = True
 robot.connection.connect()
 cv2.namedWindow("camera", cv2.WINDOW_NORMAL)
 
@@ -35,28 +36,34 @@ while True:
     image = image[crop_p1[0]:crop_p2[0], crop_p1[1]:crop_p2[1]]
     out = image.copy()
     things = color_detect.find_things(out)
-    things = red_zone.check_things(things)
     robot.find(things)
+    things = red_zone.check_things(things)
     robot.draw(out)
     robot.update_image(image)
     robot.update_maze(things)
-    # for i in robot.maze:
-    #    print i
-    # print "----------------------------------"
+    for i in robot.maze:
+        print i
+    print "----------------------------------"
     robot.draw_grid(out)
-    print "thigns " ,len(things)
-    robot.choose_target(things)
-    cv2.line(out, (robot.hx, robot.hy), (robot.target.cx, robot.target.cy), (0, 255, 255), 1)
-    mx, my = robot.find_move_point(out)
-    #robot.move_to_point((mx, my))
-    if distance((mx,my),(robot.hx,robot.hy)) >10:
-        robot.move(angle((mx,my),(robot.hx,robot.hy)))
-    else:
-        robot.connection.send_move_angle(0,0)
+    finded = robot.choose_target(things)
+    if finded:
+        cv2.line(out, (robot.hx, robot.hy), (robot.target.cx, robot.target.cy), (0, 255, 255), 1)
+        mx, my = robot.find_move_point(out)
+        #robot.move_to_point((mx, my),out)
+        if distance((mx, my), (robot.hx, robot.hy)) > 50:
+            robot.move(angle((mx, my), (robot.hx, robot.hy)))
+        else:
+            print "here"
+            robot.move(angle((robot.target.cx,robot.target.cy),(red_zone.x,red_zone.y)))
+            #robot.connection.send_move_angle(0, 0)
 
-    print "robot", robot.get_angle()
-    cv2.line(out, (robot.hx, robot.hy), (mx, my), (255, 0, 255), 1)
-    cv2.line(out, (robot.red_zone.x, robot.red_zone.y), (robot.target.cx, robot.target.cy), (0, 0, 255), 1)
+        print "robot", robot.get_angle()
+        cv2.line(out, (robot.hx, robot.hy), (mx, my), (255, 0, 255), 1)
+        cv2.line(out, (robot.red_zone.x, robot.red_zone.y), (robot.target.cx, robot.target.cy), (0, 0, 255), 1)
+    else:
+
+        w, h = image.shape[:2]
+        robot.move(angle((w / 2, h / 2), (robot.hx, robot.hy)))
     cv2.imshow("camera", out)
     key = cv2.waitKey(1)
     if key == 27:

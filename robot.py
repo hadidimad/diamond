@@ -52,8 +52,8 @@ class Robot:
         self.offset = 300
         self.finded = False
         maze = []
-        self.MAZE_MAX_X = 10
-        self.MAZE_MAX_Y = 10
+        self.MAZE_MAX_X = 15
+        self.MAZE_MAX_Y = 15
         for i in xrange(self.MAZE_MAX_Y):
             maze.append([])
             for j in xrange(self.MAZE_MAX_X):
@@ -113,52 +113,48 @@ class Robot:
             direction = 180 + direction
         direction = abs(direction - 360)
         direction = int(direction)
-        print direction
-        direction = direction -self.get_angle()
+        direction = direction - self.get_angle()
         if direction < 0:
             direction = abs(direction)
             direction = 180 - direction
             direction = 180 + direction
-        print "move dir",direction
-        self.connection.send_move_angle(direction,90)
+        self.connection.send_move_angle(direction, 80)
 
-    def move_to_point(self, point):
+    def move_to_point(self, point,image):
         (x, y) = point[0], point[1]
         if self.convert_maze_x(x) == self.convert_maze_x(self.hx) and self.convert_maze_y(y) == self.convert_maze_y(
                 self.hy):
 
-            if distance((self.hx, self.hy), (x, y)) < 5:
+            if distance((self.hx, self.hy), (x, y)) < 10:
                 return True
             else:
                 self.move(angle((self.hx, self.hy), (x, y)))
                 return False
         else:
             w, h = self.image.shape[:2]
-            mx = self.convert_maze_x(self.hx)
-            my = self.convert_maze_y(self.hy)
-            mx = mx * (w / self.MAZE_MAX_X) + (w / self.MAZE_MAX_X) / 2
-            my = my * (h / self.MAZE_MAX_Y) + (h / self.MAZE_MAX_Y) / 2
-            if distance((self.hx, self.hy), (mx, my)) > 5:
-                self.move(angle((self.hx, self.hy), (mx, my)))
-            else:
-                path = find_path_astar(self.maze, (self.convert_maze_x(self.hx), self.convert_maze_y(self.hy)),
-                                       (self.convert_maze_x(x), self.convert_maze_y(y)))
-                nx = self.hx
-                ny = self.hy
+            path = find_path_astar(self.maze, (self.convert_maze_x(self.hx), self.convert_maze_y(self.hy)),
+                                   (self.convert_maze_x(x), self.convert_maze_y(y)))
+            rx = self.convert_maze_x(self.hx) + ((w / self.MAZE_MAX_X) / 2)
+            ry = self.convert_maze_y(self.hy) + ((h / self.MAZE_MAX_Y) / 2)
+            nx = self.hx
+            ny = self.hy
+            if path != "NO WAY!":
                 if path[0] == "N":
-                    nx = self.hx
-                    ny = self.hy - (h / self.MAZE_MAX_Y)
+                    nx = rx - (w / self.MAZE_MAX_X)
+                    ny = ry
                 elif path[0] == "E":
-                    nx = self.hx + (w / self.MAZE_MAX_X)
-                    ny = self.hy
-                elif path[0] == "S":
-                    nx = self.hx
+                    nx = rx
                     ny = self.hy + (h / self.MAZE_MAX_Y)
+                elif path[0] == "S":
+                    nx = rx + (w / self.MAZE_MAX_X)
+                    ny = ry
                 elif path[0] == "W":
-                    nx = self.hx - (w / self.MAZE_MAX_X)
-                    ny = self.hy
-                self.move(angle((self.hx, self.hy), (nx, ny)))
-            return False
+                    nx = rx
+                    ny = ry - (h / self.MAZE_MAX_Y)
+                print path
+                self.move(angle((nx, ny), (self.hx, self.hy)))
+                cv2.line(image,(self.hx,self.hy),(nx,ny),(0,255,0),2)
+        return False
 
     def find_move_point(self, image):
         a = math.degrees(math.atan2((self.red_zone.y - self.target.cy), (self.red_zone.x - self.target.cx)))
@@ -180,21 +176,18 @@ class Robot:
             return False
         a = copy.deepcopy(things)
 
-
         def compare(a, b):
-            # return distance((self.hx,self.hy),(a.cx,a.cy))+distance((a.cx,a.cy),(self.red_zone.x,self.red_zone.y))
-            # ""sum of robot distance to goal and object distance to red zone""
             dista = int(distance((a.cx, a.cy), (self.red_zone.x, self.red_zone.y)) - distance((b.cx, b.cy), (
                 self.red_zone.x, self.red_zone.y)))
             return dista
 
         a.sort(cmp=compare)
         for i in a:
-            if distance((i.x,i.y),(self.hx,self.hy)) < 5:
+            if distance((i.x, i.y), (self.hx, self.hy)) < 5:
                 continue
-            if distance((i.x,i.y),(self.ex,self.ey)) < 5:
+            if distance((i.x, i.y), (self.ex, self.ey)) < 5:
                 continue
-            self.target=i
+            self.target = i
             break
         return True
 
