@@ -51,6 +51,7 @@ class Robot:
         self.color2 = color2
         self.offset = 300
         self.finded = False
+        self.MAX_SPEED = 200  # at most 255
         maze = []
         self.MAZE_MAX_X = 15
         self.MAZE_MAX_Y = 15
@@ -63,6 +64,7 @@ class Robot:
         self.red_zone = red_zone
         self.target = None  # type Thing
         self.connection = None
+        self.send_angle = 0
 
     def draw(self, image):
         if self.finded == True:
@@ -98,15 +100,16 @@ class Robot:
                     if j.color == self.color2:
                         (x2, y2) = j.x + j.w / 2, j.y + j.h / 2
                         (x1, y1) = i.x + i.w / 2, i.y + i.h / 2
-                        if distance((x1, y1), (x2, y2)) < 50:
+                        if distance((x1, y1), (x2, y2)) < 20:
                             self.update_pos((x1, y1), (x2, y2))
                             things.remove(i)
                             things.remove(j)
                             self.finded = True
                             return
         self.finded = False
-
-    def move(self, direction):
+    def stop(self):
+        self.connection.stop()
+    def move(self, direction, speed=7):
         if direction < 0:
             direction = abs(direction)
             direction = 180 - direction
@@ -118,42 +121,27 @@ class Robot:
             direction = abs(direction)
             direction = 180 - direction
             direction = 180 + direction
-        self.connection.send_move_angle(direction, 80)
-
-    def move_to_point(self, point,image):
+        if speed > self.MAX_SPEED:
+            speed = self.MAX_SPEED
+        print "move dir", direction, "speed ", speed
+        self.connection.send_move_angle(direction, speed)
+    def set_angle(self,direction):
+        if abs(self.send_angle -direction) > 5:
+            if direction < 0:
+                direction = abs(direction)
+                direction = 180 - direction
+                direction = 180 + direction
+            direction = abs(direction - 360)
+            direction = int(direction)
+            self.connection.set_zero_angle(direction)
+    def move_to_point(self, point, image):
         (x, y) = point[0], point[1]
-        if self.convert_maze_x(x) == self.convert_maze_x(self.hx) and self.convert_maze_y(y) == self.convert_maze_y(
-                self.hy):
-
-            if distance((self.hx, self.hy), (x, y)) < 10:
-                return True
-            else:
-                self.move(angle((self.hx, self.hy), (x, y)))
-                return False
+        if self.hx - x < 0:
+            self.move(angle((x, self.hy), (self.hx, self.hy)))
+        elif self.hy - y < 0:
+            self.move(angle((self.hx, y), (self.hx, self.hy)))
         else:
-            w, h = self.image.shape[:2]
-            path = find_path_astar(self.maze, (self.convert_maze_x(self.hx), self.convert_maze_y(self.hy)),
-                                   (self.convert_maze_x(x), self.convert_maze_y(y)))
-            rx = self.convert_maze_x(self.hx) + ((w / self.MAZE_MAX_X) / 2)
-            ry = self.convert_maze_y(self.hy) + ((h / self.MAZE_MAX_Y) / 2)
-            nx = self.hx
-            ny = self.hy
-            if path != "NO WAY!":
-                if path[0] == "N":
-                    nx = rx - (w / self.MAZE_MAX_X)
-                    ny = ry
-                elif path[0] == "E":
-                    nx = rx
-                    ny = self.hy + (h / self.MAZE_MAX_Y)
-                elif path[0] == "S":
-                    nx = rx + (w / self.MAZE_MAX_X)
-                    ny = ry
-                elif path[0] == "W":
-                    nx = rx
-                    ny = ry - (h / self.MAZE_MAX_Y)
-                print path
-                self.move(angle((nx, ny), (self.hx, self.hy)))
-                cv2.line(image,(self.hx,self.hy),(nx,ny),(0,255,0),2)
+            self.move(angle((x, y), (self.hx, self.hy)))
         return False
 
     def find_move_point(self, image):
@@ -167,8 +155,8 @@ class Robot:
         cv2.putText(image, str(int(a)), (self.red_zone.x, self.red_zone.y), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
                     (0, 0, 0), 1, cv2.LINE_AA)
         a = math.radians(a)
-        mx = int(self.target.cx - (math.cos(a) * 50))
-        my = int(self.target.cy + (math.sin(a) * 50))
+        mx = int(self.target.cx - (math.cos(a) * 35))
+        my = int(self.target.cy + (math.sin(a) * 35))
         return mx, my
 
     def choose_target(self, things):
