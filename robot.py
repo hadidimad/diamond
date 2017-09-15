@@ -100,7 +100,7 @@ class Robot:
                     if j.color == self.color2:
                         (x2, y2) = j.x + j.w / 2, j.y + j.h / 2
                         (x1, y1) = i.x + i.w / 2, i.y + i.h / 2
-                        if distance((x1, y1), (x2, y2)) < 20:
+                        if distance((x1, y1), (x2, y2)) <30:
                             self.update_pos((x1, y1), (x2, y2))
                             things.remove(i)
                             things.remove(j)
@@ -151,44 +151,49 @@ class Robot:
             return False
 
     def move_target(self, image):
-        x, y, is_back_wall = self.find_move_point()
+        x, y, back_wall = self.find_move_point((self.red_zone.x, self.red_zone.y))
+        if self.red_zone.close_side == "r":
+            x, y, back_wall = self.find_move_point(
+                (self.red_zone.x, self.red_zone.y + (self.red_zone.y2 - self.red_zone.y1) / 2))
+        elif self.red_zone.close_side == "d":
+            x, y, back_wall = self.find_move_point(
+                (self.red_zone.x + (self.red_zone.x2 - self.red_zone.x1) / 2, self.red_zone.y))
+        print back_wall
+        image = cv2.line(image, (self.hx, self.hy), (x, y), (0, 0, 0), 1)
         if distance((self.hx, self.hy), (self.target.cx, self.target.cy)) > 65:
             self.move(angle((self.target.cx, self.target.cy), (self.hx, self.hy)))
         else:
-            cv2.line(image, (self.hx, self.hy), (x, y), (0, 255, 255), 1)
-            if not is_back_wall:
+            if not back_wall:
                 if self.hx - x < 0 or self.hy - y < 0:
                     if self.hx - x < 0:
-                        print "turning left", self.hx, self.target.cx
                         self.move(angle((self.target.cx, self.target.cy), (self.hx, self.hy)) + 90)
                     elif self.hy - y < 0:
-                        print "turning right", self.hy, self.target.cy
                         self.move(angle((self.target.cx, self.target.cy), (self.hx, self.hy)) - 90)
 
                 else:
                     self.move(angle((x, y), (self.hx, self.hy)))
                     if distance((x, y), (self.target.cx, self.target.cy)) < 20:
                         self.move(angle((self.target.cx, self.target.cy), (self.hx, self.hy)), 9)
-                        return True
             else:
-                self.move(angle((x, y), (self.hx, self.hy)))
-                if distance((x, y), (self.target.cx, self.target.cy)) < 20:
-                    self.move(angle((self.target.cx, self.target.cy), (self.hx, self.hy)), 8)
+                if self.red_zone.close_side == "r":
+                    if self.hy - y > 0:
+                        self.move(angle((self.target.cx, self.target.cy), (self.hx, self.hy)) + 90)
+                    else:
+                        self.move(angle((x, y), (self.hx, self.hy)))
+                        if distance((x, y), (self.target.cx, self.target.cy)) < 20:
+                            self.move(angle((self.target.cx, self.target.cy), (self.hx, self.hy)))
+                elif self.red_zone.close_side == "d":
+                    if self.hx - x > 0:
+                        self.move(angle((self.target.cx, self.target.cy), (self.hx, self.hy)) - 90)
+                    else:
+                        self.move(angle((x, y), (self.hx, self.hy)))
+                        if distance((x, y), (self.target.cx, self.target.cy)) < 20:
+                            self.move(angle((self.target.cx, self.target.cy), (self.hx, self.hy)))
 
-            return False
-
-    def find_move_point(self):
+    def find_move_point(self, (x, y)):
         is_back_wall = False
-        a = math.degrees(math.atan2((self.red_zone.y - self.target.cy), (self.red_zone.x - self.target.cx)))
+        a = math.degrees(math.atan2((y - self.target.cy), (x - self.target.cx)))
 
-        if self.red_zone.close_side == "d":
-            if self.target.cx < self.red_zone.x2 + 40:
-                is_back_wall = True
-                a = math.degrees(math.atan2((self.target.cy - self.target.cy), (self.target.cx + 20 - self.target.cx)))
-        elif self.red_zone.close_side == "r":
-            if self.target.cy < self.red_zone.y2 + 40:
-                is_back_wall = True
-                a = math.degrees(math.atan2((self.target.y + 20 - self.target.cy), (self.target.x - self.target.cx)))
         if a < 0:
             a = abs(a)
             a = 180 - a
