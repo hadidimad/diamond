@@ -107,9 +107,11 @@ class Robot:
                             self.finded = True
                             return
         self.finded = False
+
     def stop(self):
         self.connection.stop()
-    def move(self, direction, speed=7):
+
+    def move(self, direction, speed=6):
         if direction < 0:
             direction = abs(direction)
             direction = 180 - direction
@@ -125,8 +127,9 @@ class Robot:
             speed = self.MAX_SPEED
         print "move dir", direction, "speed ", speed
         self.connection.send_move_angle(direction, speed)
-    def set_angle(self,direction):
-        if abs(self.send_angle -direction) > 5:
+
+    def set_angle(self, direction):
+        if abs(self.send_angle - direction) > 5:
             if direction < 0:
                 direction = abs(direction)
                 direction = 180 - direction
@@ -134,30 +137,68 @@ class Robot:
             direction = abs(direction - 360)
             direction = int(direction)
             self.connection.set_zero_angle(direction)
+
     def move_to_point(self, point, image):
         (x, y) = point[0], point[1]
-        if self.hx - x < 0:
-            self.move(angle((x, self.hy), (self.hx, self.hy)))
-        elif self.hy - y < 0:
-            self.move(angle((self.hx, y), (self.hx, self.hy)))
-        else:
+        if distance((self.hx, self.hy), (self.target.cx, self.target.cy)) > 100:
             self.move(angle((x, y), (self.hx, self.hy)))
-        return False
+        else:
+            print "near"
+            if self.hx - x < 0 or self.hy - y < 0:
+                self.move(angle((x, y), (self.hx, self.hy)) + 90)
+            else:
+                self.move(angle((x, y), (self.hx, self.hy)))
+            return False
 
-    def find_move_point(self, image):
+    def move_target(self, image):
+        x, y, is_back_wall = self.find_move_point()
+        if distance((self.hx, self.hy), (self.target.cx, self.target.cy)) > 65:
+            self.move(angle((self.target.cx, self.target.cy), (self.hx, self.hy)))
+        else:
+            cv2.line(image, (self.hx, self.hy), (x, y), (0, 255, 255), 1)
+            if not is_back_wall:
+                if self.hx - x < 0 or self.hy - y < 0:
+                    if self.hx - x < 0:
+                        print "turning left", self.hx, self.target.cx
+                        self.move(angle((self.target.cx, self.target.cy), (self.hx, self.hy)) + 90)
+                    elif self.hy - y < 0:
+                        print "turning right", self.hy, self.target.cy
+                        self.move(angle((self.target.cx, self.target.cy), (self.hx, self.hy)) - 90)
+
+                else:
+                    self.move(angle((x, y), (self.hx, self.hy)))
+                    if distance((x, y), (self.target.cx, self.target.cy)) < 20:
+                        self.move(angle((self.target.cx, self.target.cy), (self.hx, self.hy)), 9)
+                        return True
+            else:
+                self.move(angle((x, y), (self.hx, self.hy)))
+                if distance((x, y), (self.target.cx, self.target.cy)) < 20:
+                    self.move(angle((self.target.cx, self.target.cy), (self.hx, self.hy)), 8)
+
+            return False
+
+    def find_move_point(self):
+        is_back_wall = False
         a = math.degrees(math.atan2((self.red_zone.y - self.target.cy), (self.red_zone.x - self.target.cx)))
+
+        if self.red_zone.close_side == "d":
+            if self.target.cx < self.red_zone.x2 + 40:
+                is_back_wall = True
+                a = math.degrees(math.atan2((self.target.cy - self.target.cy), (self.target.cx + 20 - self.target.cx)))
+        elif self.red_zone.close_side == "r":
+            if self.target.cy < self.red_zone.y2 + 40:
+                is_back_wall = True
+                a = math.degrees(math.atan2((self.target.y + 20 - self.target.cy), (self.target.x - self.target.cx)))
         if a < 0:
             a = abs(a)
             a = 180 - a
             a = 180 + a
         a = abs(a - 360)
         a = int(a)
-        cv2.putText(image, str(int(a)), (self.red_zone.x, self.red_zone.y), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
-                    (0, 0, 0), 1, cv2.LINE_AA)
         a = math.radians(a)
-        mx = int(self.target.cx - (math.cos(a) * 35))
-        my = int(self.target.cy + (math.sin(a) * 35))
-        return mx, my
+        mx = int(self.target.cx - (math.cos(a) * 5))
+        my = int(self.target.cy + (math.sin(a) * 5))
+        return mx, my, is_back_wall
 
     def choose_target(self, things):
         if len(things) == 0:
@@ -169,15 +210,37 @@ class Robot:
                 self.red_zone.x, self.red_zone.y)))
             return dista
 
+        w, h = self.image.shape[:2]
+        d = distance((self.red_zone.x1, self.red_zone.y1), (self.red_zone.x2, self.red_zone.y2))
+        d = int(d / 2)
         a.sort(cmp=compare)
+        f = False
         for i in a:
             if distance((i.x, i.y), (self.hx, self.hy)) < 5:
                 continue
             if distance((i.x, i.y), (self.ex, self.ey)) < 5:
                 continue
+            if i.cx <= d:
+                continue
+            if i.cy <= d:
+                continue
+            if i.cx >= w - d:
+                continue
+            if i.cy >= h - d:
+                continue
             self.target = i
+            f = True
             break
-        return True
+        if not f:
+            for i in a:
+                if distance((i.x, i.y), (self.hx, self.hy)) < 5:
+                    continue
+                if distance((i.x, i.y), (self.ex, self.ey)) < 5:
+                    continue
+                self.target = i
+                f = True
+                break
+        return f
 
     def update_image(self, image):
         self.image = image
@@ -233,6 +296,7 @@ class RedZone:
         self.y2 = 0
         self.x = 0
         self.y = 0
+        self.close_side = "n"
         self.points = []
         self.image = None
         self.finished = False

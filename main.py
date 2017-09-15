@@ -22,13 +22,13 @@ ground.config(camera)
 
 red_zone = RedZone()
 red_zone.config(camera, ground)
+red_zone.close_side = "r"
 
 robot = Robot("yellow", "blue", red_zone)
 robot.connection = Connection("20:16:07:05:09:55")
 robot.connection.on = True
 robot.connection.connect()
 cv2.namedWindow("camera", cv2.WINDOW_NORMAL)
-
 
 while True:
     _, image = camera.read()
@@ -41,23 +41,12 @@ while True:
     things = red_zone.check_things(things)
     robot.draw(out)
     robot.update_image(image)
-    robot.update_maze(things)
-    robot.draw_grid(out)
     finded = robot.choose_target(things)
     if finded:
         cv2.line(out, (robot.hx, robot.hy), (robot.target.cx, robot.target.cy), (0, 255, 255), 1)
-        mx, my = robot.find_move_point(out)
         robot.set_angle(angle((robot.target.cx, robot.target.cy), (red_zone.x1, red_zone.y1)))
-        if distance((mx, my), (robot.hx, robot.hy)) > 30:
-            robot.move_to_point((mx, my), out)
-            print "far from point"
-        else:
-            print "here"
-            robot.move(angle((robot.target.cx,robot.target.cy),(robot.hx,robot.hy)),10)
-            #robot.connection.send_move_angle(0, 0)
-
+        robot.move_target(out)
         print "robot", robot.get_angle()
-        cv2.line(out, (robot.hx, robot.hy), (mx, my), (255, 0, 255), 1)
         cv2.line(out, (robot.red_zone.x1, robot.red_zone.y1), (robot.target.cx, robot.target.cy), (0, 0, 255), 1)
     else:
 

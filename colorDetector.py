@@ -45,7 +45,7 @@ class ColorDetector:
                             currentContour = component[0]
                             currentHierarchy = component[1]
                             x, y, w, h = cv2.boundingRect(currentContour)
-                            if currentHierarchy[3] < 0 and w * h > 300:
+                            if currentHierarchy[3] < 0 and w * h > 150:
                                 cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 1)
                 cv2.imshow("calibrate color", image)
                 cv2.imshow("hsv", hsv)
@@ -79,7 +79,7 @@ class ColorDetector:
                     cnt = component[0]
                     currentHierarchy = component[1]
                     x, y, w, h = cv2.boundingRect(cnt)
-                    if currentHierarchy[3] < 0 and w * h > 200:
+                    if currentHierarchy[3] < 0 and w * h > 150:
                         image = cv2.rectangle(
                             image, (x, y), (x + w, y + h), (100, 200, 100))
                         image = cv2.putText(image, col, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
